@@ -1,0 +1,329 @@
+# Video Labeling Silver Job
+
+resources:
+  jobs:
+    deepmind_labeling_silver_video_job:
+      name: "DeepMind Labeling silver jobs for video"
+      description: "Process video files to produce labeling results"
+      tags:
+        env: ${bundle.target}
+        vertical: deepmind_labeling
+
+      parameters:
+        - name: ENVIRONMENT
+          default: ${bundle.target}
+        - name: VERTICAL
+          default: deepmind_labeling
+        - name: data_domain
+          default: ggdrive
+        - name: LIMIT
+          default: "5"
+
+        # parameters for processing files
+        - name: batch_id
+          default: ""
+
+      schedule:
+        quartz_cron_expression: "0 0 0 * * ?"
+        timezone_id: "Asia/Ho_Chi_Minh"
+
+      max_concurrent_runs: 1
+      timeout_seconds: 36000 # 10 hours
+
+      tasks:
+        - task_key: update_prompt_profiles
+          environment_key: default
+          spark_python_task:
+            python_file: ../src/data_transformation/manage_prompt_profiles.py
+          max_retries: 3
+          timeout_seconds: 1200
+
+        # 1) Extract frames
+        - task_key: video_extract_frames_gen_todo
+          environment_key: default
+          depends_on:
+            - task_key: update_prompt_profiles
+          spark_python_task:
+            python_file: ../src/data_transformation/silver_runner.py
+            parameters: ["plan", "--task", "video.extract_frames", "--limit={{job.parameters.LIMIT}}"]
+          timeout_seconds: 600
+          max_retries: 3
+          min_retry_interval_millis: 60000
+
+        - task_key: video_extract_frames_process
+          depends_on:
+            - task_key: video_extract_frames_gen_todo
+          for_each_task:
+            inputs: "{{tasks.video_extract_frames_gen_todo.values.pending_batch_ids}}"
+            concurrency: 8
+            task:
+              task_key: video_extract_frames_process_single
+              environment_key: default
+              spark_python_task:
+                python_file: ../src/data_transformation/silver_runner.py
+                parameters: ["process", "--task", "video.extract_frames", "--batch_id={{input}}"]
+
+              max_retries: 3
+              min_retry_interval_millis: 60000
+
+        - task_key: video_extract_frames_consolidate
+          environment_key: default
+          depends_on:
+            - task_key: video_extract_frames_process
+          spark_python_task:
+            python_file: ../src/data_transformation/silver_runner.py
+            parameters: ["consolidate", "--task", "video.extract_frames"]
+
+        # 2) Video description+tags
+        - task_key: video_des_tag_gen_todo
+          environment_key: default
+          depends_on:
+            - task_key: video_extract_frames_consolidate
+          spark_python_task:
+            python_file: ../src/data_transformation/silver_runner.py
+            parameters: ["plan", "--task", "video.des_tag", "--limit={{job.parameters.LIMIT}}"]
+          timeout_seconds: 600
+          max_retries: 3
+          min_retry_interval_millis: 60000
+
+        - task_key: video_des_tag_process
+          depends_on:
+            - task_key: video_des_tag_gen_todo
+          for_each_task:
+            inputs: "{{tasks.video_des_tag_gen_todo.values.pending_batch_ids}}"
+            concurrency: 16
+            task:
+              task_key: video_des_tag_process_single
+              environment_key: default
+              spark_python_task:
+                python_file: ../src/data_transformation/silver_runner.py
+                parameters: ["process", "--task", "video.des_tag", "--batch_id={{input}}"]
+              max_retries: 3
+              min_retry_interval_millis: 60000
+
+        - task_key: video_des_tag_consolidate
+          environment_key: default
+          depends_on:
+            - task_key: video_des_tag_process
+          spark_python_task:
+            python_file: ../src/data_transformation/silver_runner.py
+            parameters: ["consolidate", "--task", "video.des_tag"]
+
+        # 3) Video-level embedding
+        - task_key: video_embedding_gen_todo
+          environment_key: default
+          depends_on:
+            - task_key: video_des_tag_consolidate
+            - task_key: video_extract_frames_consolidate
+          spark_python_task:
+            python_file: ../src/data_transformation/silver_runner.py
+            parameters: ["plan", "--task", "video.embedding", "--limit={{job.parameters.LIMIT}}"]
+          timeout_seconds: 600
+          max_retries: 3
+          min_retry_interval_millis: 60000
+
+        - task_key: video_embedding_process
+          depends_on:
+            - task_key: video_embedding_gen_todo
+          for_each_task:
+            inputs: "{{tasks.video_embedding_gen_todo.values.pending_batch_ids}}"
+            concurrency: 16
+            task:
+              task_key: video_embedding_process_single
+              environment_key: default
+              spark_python_task:
+                python_file: ../src/data_transformation/silver_runner.py
+                parameters: ["process", "--task", "video.embedding", "--batch_id={{input}}"]
+              max_retries: 3
+              min_retry_interval_millis: 60000
+
+        - task_key: video_embedding_consolidate
+          environment_key: default
+          depends_on:
+            - task_key: video_embedding_process
+          spark_python_task:
+            python_file: ../src/data_transformation/silver_runner.py
+            parameters: ["consolidate", "--task", "video.embedding"]
+
+        # 5) Frame abuse profiling
+        - task_key: video_frame_abuse_gen_todo
+          environment_key: default
+          depends_on:
+            - task_key: video_extract_frames_consolidate
+            - task_key: video_des_tag_consolidate
+          spark_python_task:
+            python_file: ../src/data_transformation/silver_runner.py
+            parameters: ["plan", "--task", "video.frame_abuse", "--limit={{job.parameters.LIMIT}}"]
+          timeout_seconds: 600
+          max_retries: 3
+          min_retry_interval_millis: 60000
+
+        - task_key: video_frame_abuse_process
+          depends_on:
+            - task_key: video_frame_abuse_gen_todo
+          for_each_task:
+            inputs: "{{tasks.video_frame_abuse_gen_todo.values.pending_batch_ids}}"
+            concurrency: 16
+            task:
+              task_key: video_frame_abuse_process_single
+              environment_key: default
+              spark_python_task:
+                python_file: ../src/data_transformation/silver_runner.py
+                parameters: ["process", "--task", "video.frame_abuse", "--batch_id={{input}}"]
+              max_retries: 3
+              min_retry_interval_millis: 60000
+
+        - task_key: video_frame_abuse_consolidate
+          environment_key: default
+          depends_on:
+            - task_key: video_frame_abuse_process
+          spark_python_task:
+            python_file: ../src/data_transformation/silver_runner.py
+            parameters: ["consolidate", "--task", "video.frame_abuse"]
+
+        # 6) Video-level abuse consolidation
+        - task_key: video_abuse_summary_gen_todo
+          environment_key: default
+          depends_on:
+            - task_key: video_frame_abuse_consolidate
+          spark_python_task:
+            python_file: ../src/data_transformation/silver_runner.py
+            parameters: ["plan", "--task", "video.frame_abuse_consolidate", "--limit={{job.parameters.LIMIT}}"]
+          timeout_seconds: 600
+          max_retries: 3
+          min_retry_interval_millis: 60000
+
+        - task_key: video_abuse_summary_process
+          depends_on:
+            - task_key: video_abuse_summary_gen_todo
+          for_each_task:
+            inputs: "{{tasks.video_abuse_summary_gen_todo.values.pending_batch_ids}}"
+            concurrency: 16
+            task:
+              task_key: video_abuse_summary_process_single
+              environment_key: default
+              spark_python_task:
+                python_file: ../src/data_transformation/silver_runner.py
+                parameters: ["process", "--task", "video.frame_abuse_consolidate", "--batch_id={{input}}"]
+              max_retries: 3
+              min_retry_interval_millis: 60000
+
+        - task_key: video_abuse_summary_consolidate
+          environment_key: default
+          depends_on:
+            - task_key: video_abuse_summary_process
+          spark_python_task:
+            python_file: ../src/data_transformation/silver_runner.py
+            parameters: ["consolidate", "--task", "video.frame_abuse_consolidate"]
+
+        # 7) Audio pipeline: extract → transcribe → translate
+        - task_key: video_extract_audio_gen_todo
+          environment_key: default
+          depends_on:
+            - task_key: update_prompt_profiles
+          spark_python_task:
+            python_file: ../src/data_transformation/silver_runner.py
+            parameters: ["plan", "--task", "video.extract_audio", "--limit={{job.parameters.LIMIT}}"]
+          timeout_seconds: 600
+          max_retries: 3
+          min_retry_interval_millis: 60000
+
+        - task_key: video_extract_audio_process
+          depends_on:
+            - task_key: video_extract_audio_gen_todo
+          for_each_task:
+            inputs: "{{tasks.video_extract_audio_gen_todo.values.pending_batch_ids}}"
+            concurrency: 8
+            task:
+              task_key: video_extract_audio_process_single
+              environment_key: default
+              spark_python_task:
+                python_file: ../src/data_transformation/silver_runner.py
+                parameters: ["process", "--task", "video.extract_audio", "--batch_id={{input}}"]
+              max_retries: 3
+              min_retry_interval_millis: 60000
+
+        - task_key: video_extract_audio_consolidate
+          environment_key: default
+          depends_on:
+            - task_key: video_extract_audio_process
+          spark_python_task:
+            python_file: ../src/data_transformation/silver_runner.py
+            parameters: ["consolidate", "--task", "video.extract_audio"]
+
+        - task_key: video_audio_transcribe_gen_todo
+          environment_key: default
+          depends_on:
+            - task_key: video_extract_audio_consolidate
+          spark_python_task:
+            python_file: ../src/data_transformation/silver_runner.py
+            parameters: ["plan", "--task", "video.audio_transcribe", "--limit={{job.parameters.LIMIT}}"]
+          timeout_seconds: 600
+          max_retries: 3
+          min_retry_interval_millis: 60000
+
+        - task_key: video_audio_transcribe_process
+          depends_on:
+            - task_key: video_audio_transcribe_gen_todo
+          for_each_task:
+            inputs: "{{tasks.video_audio_transcribe_gen_todo.values.pending_batch_ids}}"
+            concurrency: 16
+            task:
+              task_key: video_audio_transcribe_process_single
+              environment_key: default
+              spark_python_task:
+                python_file: ../src/data_transformation/silver_runner.py
+                parameters: ["process", "--task", "video.audio_transcribe", "--batch_id={{input}}"]
+              max_retries: 3
+              min_retry_interval_millis: 60000
+
+        - task_key: video_audio_transcribe_consolidate
+          environment_key: default
+          depends_on:
+            - task_key: video_audio_transcribe_process
+          spark_python_task:
+            python_file: ../src/data_transformation/silver_runner.py
+            parameters: ["consolidate", "--task", "video.audio_transcribe"]
+
+        - task_key: video_audio_translate_gen_todo
+          environment_key: default
+          depends_on:
+            - task_key: video_audio_transcribe_consolidate
+          spark_python_task:
+            python_file: ../src/data_transformation/silver_runner.py
+            parameters: ["plan", "--task", "video.audio_translate", "--limit={{job.parameters.LIMIT}}"]
+          timeout_seconds: 600
+          max_retries: 3
+          min_retry_interval_millis: 60000
+
+        - task_key: video_audio_translate_process
+          depends_on:
+            - task_key: video_audio_translate_gen_todo
+          for_each_task:
+            inputs: "{{tasks.video_audio_translate_gen_todo.values.pending_batch_ids}}"
+            concurrency: 16
+            task:
+              task_key: video_audio_translate_process_single
+              environment_key: default
+              spark_python_task:
+                python_file: ../src/data_transformation/silver_runner.py
+                parameters: ["process", "--task", "video.audio_translate", "--batch_id={{input}}"]
+              max_retries: 3
+              min_retry_interval_millis: 60000
+
+        - task_key: video_audio_translate_consolidate
+          environment_key: default
+          depends_on:
+            - task_key: video_audio_translate_process
+          spark_python_task:
+            python_file: ../src/data_transformation/silver_runner.py
+            parameters: ["consolidate", "--task", "video.audio_translate"]
+
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+            # dependencies:
+            #   - ../dist/*.whl
+
+

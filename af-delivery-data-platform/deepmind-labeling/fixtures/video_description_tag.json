@@ -1,0 +1,11 @@
+{
+    "version": 1,
+    "pt_video_desc": "image_description.md",
+    "pt_video_tags": "image_tag.md",
+    "models": ["google_genai:gemini-2.5-flash"],
+    "pt_frames_desc": "image_description.md",
+    "pt_frames_tags": "image_tag.md",
+    "pt_desc_summary" : "video_desc_summary.md",
+    "pt_tags_summary": "video_tags_summary.md",
+    "frame_models": ["google_genai:gemini-2.5-flash", "openai:gpt-4o"]
+}

@@ -1,0 +1,785 @@
+{
+  "datasets": [
+    {
+      "name": "65d57af5",
+      "displayName": "landing data",
+      "queryLines": [
+        "select \n",
+        "file_size / 1024 / 1024 as file_mb,\n",
+        "case mime_type\n",
+        "when 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' then 'word'\n",
+        "when 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' then 'excel'\n",
+        "when 'application/vnd.openxmlformats-officedocument.presentationml.presentation' then 'powerpoint'\n",
+        "when 'application/pdf' then 'pdf'\n",
+        "else mime_type\n",
+        "end as short_mime_type,\n",
+        "team AS vertical\n",
+        "from monday"
+      ],
+      "catalog": "af_delivery_dev",
+      "schema": "landing_kb_unstructured"
+    },
+    {
+      "name": "ea5fd38c",
+      "displayName": "landing unprocessed file",
+      "queryLines": [
+        "select count(1) from\n",
+        "af_delivery_dev.landing_kb_unstructured.monday b\n",
+        "LEFT ANTI JOIN\n",
+        "af_delivery_dev.silver_kb_unstructured.chunking s\n",
+        "ON b.landing_id = s.landing_id"
+      ],
+      "catalog": "af_delivery_dev",
+      "schema": "silver_kb_unstructured"
+    },
+    {
+      "name": "00075d9e",
+      "displayName": "chunking",
+      "queryLines": [
+        "SELECT COUNT(*) AS chunk_count\n",
+        "FROM af_delivery_dev.silver_kb_unstructured.chunking"
+      ]
+    },
+    {
+      "name": "8f35a695",
+      "displayName": "vectorizing",
+      "queryLines": [
+        "SELECT COUNT(*) AS vector_count\n",
+        "FROM af_delivery_dev.silver_kb_unstructured.vectorizing"
+      ]
+    },
+    {
+      "name": "887c2489",
+      "displayName": "gold",
+      "queryLines": [
+        "SELECT vertical FROM af_delivery_dev.gold_kb_unstructured.gold"
+      ]
+    },
+    {
+      "name": "cb4561be",
+      "displayName": "pinecone",
+      "queryLines": [
+        "WITH parsed AS (\n",
+        "  SELECT\n",
+        "    from_json(pinecone_stats, 'MAP<STRING,STRING>') AS json_map\n",
+        "  FROM gold_tracking\n",
+        "),\n",
+        "namespaces AS (\n",
+        "  SELECT\n",
+        "    from_json(json_map[\"namespaces\"], 'MAP<STRING, STRUCT<vector_count: INT>>') AS ns\n",
+        "  FROM parsed\n",
+        "),\n",
+        "exploded AS (\n",
+        "  SELECT\n",
+        "    explode(ns) AS (namespace, details)\n",
+        "  FROM namespaces\n",
+        ")\n",
+        "SELECT\n",
+        "  namespace, details.vector_count\n",
+        "FROM exploded;\n"
+      ],
+      "catalog": "af_delivery_dev",
+      "schema": "gold_kb_unstructured"
+    },
+    {
+      "name": "2ba38c14",
+      "displayName": "monday_discovery",
+      "queryLines": [
+        "SELECT board_id, group_id, item_id, metadata:team FROM af_delivery_dev.ingestion_kb_unstructured.monday_discovery"
+      ]
+    },
+    {
+      "name": "95c93be4",
+      "displayName": "monday_ggdrive_download_tracking",
+      "queryLines": [
+        "SELECT board_id, group_id, item_id FROM af_delivery_dev.ingestion_kb_unstructured.monday_ggdrive_download_tracking"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "4251c4b3",
+      "displayName": "overview",
+      "layout": [
+        {
+          "widget": {
+            "name": "3451c216",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "65d57af5",
+                  "fields": [
+                    {
+                      "name": "count(*)",
+                      "expression": "COUNT(`*`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "count(*)",
+                  "displayName": "Count of Records"
+                }
+              },
+              "frame": {
+                "title": "Number of files landed",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 1,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "87424d7b",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "65d57af5",
+                  "fields": [
+                    {
+                      "name": "count(*)",
+                      "expression": "COUNT(`*`)"
+                    },
+                    {
+                      "name": "short_mime_type",
+                      "expression": "`short_mime_type`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {
+                  "fieldName": "count(*)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Count of Records"
+                },
+                "color": {
+                  "fieldName": "short_mime_type",
+                  "scale": {
+                    "type": "categorical",
+                    "mappings": [
+                      {
+                        "value": "excel",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 4
+                        }
+                      },
+                      {
+                        "value": "powerpoint",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 3
+                        }
+                      },
+                      {
+                        "value": "pdf",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 8
+                        }
+                      }
+                    ]
+                  },
+                  "displayName": "short_mime_type"
+                }
+              },
+              "frame": {
+                "title": "Count of Files Landed by MIME Type",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 1,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "95ec7eb3",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ea5fd38c",
+                  "fields": [
+                    {
+                      "name": "count(1)",
+                      "expression": "`count(1)`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "count(1)",
+                  "rowNumber": 1,
+                  "displayName": "count(1)"
+                }
+              },
+              "frame": {
+                "title": "Number of unprocessed files",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 10,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "879a0961",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "00075d9e",
+                  "fields": [
+                    {
+                      "name": "chunk_count",
+                      "expression": "`chunk_count`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "chunk_count",
+                  "rowNumber": 1,
+                  "displayName": "chunk_count"
+                }
+              },
+              "frame": {
+                "title": "Number of chunks",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 14,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "4bc3af37",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "8f35a695",
+                  "fields": [
+                    {
+                      "name": "vector_count",
+                      "expression": "`vector_count`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "vector_count",
+                  "rowNumber": 1,
+                  "displayName": "vector_count"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Number of vectors"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 14,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "82cf4bdc",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "cb4561be",
+                  "fields": [
+                    {
+                      "name": "sum(vector_count)",
+                      "expression": "SUM(`vector_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(vector_count)",
+                  "displayName": "Sum of vector_count"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Number of vectors in pinecone"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 17,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "fafd00e8",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "887c2489",
+                  "fields": [
+                    {
+                      "name": "count(*)",
+                      "expression": "COUNT(`*`)"
+                    },
+                    {
+                      "name": "vertical",
+                      "expression": "`vertical`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "count(*)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Count of Records"
+                },
+                "y": {
+                  "fieldName": "vertical",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "vertical"
+                },
+                "label": {
+                  "show": true
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Number of vectors in Gold by Vertical"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 19,
+            "width": 3,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "b0d3cb52",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "65d57af5",
+                  "fields": [
+                    {
+                      "name": "count(*)",
+                      "expression": "COUNT(`*`)"
+                    },
+                    {
+                      "name": "vertical",
+                      "expression": "`vertical`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {
+                  "fieldName": "count(*)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Count of Records"
+                },
+                "color": {
+                  "fieldName": "vertical",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "vertical"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Number of file by Vertical"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 4,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "206a46ab",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "65d57af5",
+                  "fields": [
+                    {
+                      "name": "sum(file_mb)",
+                      "expression": "SUM(`file_mb`)"
+                    },
+                    {
+                      "name": "vertical",
+                      "expression": "`vertical`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "sum(file_mb)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Sum of file_mb"
+                },
+                "y": {
+                  "fieldName": "vertical",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "vertical"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 7,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "267dcefc",
+            "multilineTextboxSpec": {
+              "lines": [
+                "<span style=\"text-align:center;display:block\"><span style=\"font-size:24px\">**PROCESSING**</span></span>"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 13,
+            "width": 6,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "bb73b9e9",
+            "multilineTextboxSpec": {
+              "lines": [
+                "<span style=\"text-align:center;display:block\"><span style=\"font-size: 24px;\">**LANDING**</span></span>"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 6,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "c9ffce31",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "887c2489",
+                  "fields": [
+                    {
+                      "name": "count(*)",
+                      "expression": "COUNT(`*`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "count(*)",
+                  "displayName": "Count of Records"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Numver of vectors in GOLD"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 17,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "f6b14c22",
+            "multilineTextboxSpec": {
+              "lines": [
+                "<span style=\"text-align:center;display:block\"><span style=\"font-size:24px\">**GOLD**</span></span>"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 16,
+            "width": 6,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "b8dcf115",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "cb4561be",
+                  "fields": [
+                    {
+                      "name": "sum(vector_count)",
+                      "expression": "SUM(`vector_count`)"
+                    },
+                    {
+                      "name": "namespace",
+                      "expression": "`namespace`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "sum(vector_count)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Sum of vector_count"
+                },
+                "y": {
+                  "fieldName": "namespace",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "namespace"
+                },
+                "label": {
+                  "show": true
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 19,
+            "width": 3,
+            "height": 4
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
+    },
+    {
+      "name": "913631ff",
+      "displayName": "Global Filters",
+      "pageType": "PAGE_TYPE_GLOBAL_FILTERS"
+    },
+    {
+      "name": "a26d05a7",
+      "displayName": "ingestion",
+      "layout": [
+        {
+          "widget": {
+            "name": "1314eff6",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "2ba38c14",
+                  "fields": [
+                    {
+                      "name": "count(*)",
+                      "expression": "COUNT(`*`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "count(*)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "discovery"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "5521224f",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "95c93be4",
+                  "fields": [
+                    {
+                      "name": "count(*)",
+                      "expression": "COUNT(`*`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "count(*)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "downloaded"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 0,
+            "width": 3,
+            "height": 6
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    }
+  }
+}

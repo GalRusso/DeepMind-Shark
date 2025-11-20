@@ -1,0 +1,431 @@
+{
+  "datasets": [
+    {
+      "displayName": "weekly_trends_copies",
+      "name": "weekly_trends_copies_data",
+      "queryLines": [
+        "SELECT \n",
+        "    cast(DATE_FORMAT(DATE_SUB(dd.date_key, dayofweek(dd.date_key) - 2), 'yyyy-MM-dd') as date) as week_start_date,\n",
+        "    'Trends' as metric_type,\n",
+        "    COUNT(DISTINCT ft.trend_id) as count\n",
+        "FROM af_delivery_dev.curated_dismis.fact_trends ft\n",
+        "JOIN af_delivery_dev.curated_dismis.dim_date dd ON ft.date_reported_key = dd.date_key\n",
+        "GROUP BY DATE_FORMAT(DATE_SUB(dd.date_key, dayofweek(dd.date_key) - 2), 'yyyy-MM-dd')\n",
+        "UNION ALL\n",
+        "SELECT \n",
+        "    cast(DATE_FORMAT(DATE_SUB(dd.date_key, dayofweek(dd.date_key) - 2), 'yyyy-MM-dd') as date) as week_start_date,\n",
+        "    'Copies' as metric_type,\n",
+        "    COUNT(DISTINCT fc.monday_item_id) as count\n",
+        "FROM af_delivery_dev.curated_dismis.fact_copies fc\n",
+        "JOIN af_delivery_dev.curated_dismis.dim_date dd ON fc.date_reported_key = dd.date_key\n",
+        "GROUP BY DATE_FORMAT(DATE_SUB(dd.date_key, dayofweek(dd.date_key) - 2), 'yyyy-MM-dd')\n",
+        "ORDER BY week_start_date, metric_type"
+      ]
+    },
+    {
+      "displayName": "trends_by_region",
+      "name": "trends_by_region_data",
+      "queryLines": [
+        "SELECT \n",
+        "    dg.region,\n",
+        "    COUNT(DISTINCT ft.trend_id) as trend_count\n",
+        "FROM af_delivery_dev.curated_dismis.fact_trends ft\n",
+        "JOIN af_delivery_dev.curated_dismis.dim_geography dg ON ft.geography_key = dg.geography_key\n",
+        "GROUP BY dg.region\n",
+        "ORDER BY trend_count DESC\n"
+      ]
+    },
+    {
+      "displayName": "Monthly Trends Copies by Region",
+      "name": "f4721edf",
+      "queryLines": [
+        "select\n",
+        "    dd.year_month,\n",
+        "    dgeo.region,\n",
+        "    \"Trends\" as metric_type,\n",
+        "    count(ft.trend_id) as count\n",
+        "from af_delivery_dev.curated_dismis.fact_trends ft\n",
+        "join af_delivery_dev.curated_dismis.dim_date dd\n",
+        "    on ft.date_reported_key = dd.date_key\n",
+        "join af_delivery_dev.curated_dismis.dim_geography dgeo\n",
+        "    on ft.geography_key = dgeo.geography_key\n",
+        "group by dd.year_month, dgeo.region\n",
+        "union all\n",
+        "select\n",
+        "    dd.year_month,\n",
+        "    dgeo.region,\n",
+        "    \"Copies\" as metric_type,\n",
+        "    count(fcp.monday_item_id) as count\n",
+        "from af_delivery_dev.curated_dismis.fact_copies fcp\n",
+        "join af_delivery_dev.curated_dismis.dim_date dd\n",
+        "    on fcp.date_reported_key = dd.date_key\n",
+        "join af_delivery_dev.curated_dismis.dim_geography dgeo\n",
+        "    on fcp.geography_key = dgeo.geography_key\n",
+        "group by dd.year_month, dgeo.region\n",
+        "order by 1,2"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "displayName": "EWD Trends Analytics Dashboard",
+      "layout": [
+        {
+          "position": {
+            "height": 6,
+            "width": 6,
+            "x": 0,
+            "y": 0
+          },
+          "widget": {
+            "name": "weekly_trends_copies_chart",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "weekly_trends_copies_data",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "expression": "`metric_type`",
+                      "name": "metric_type"
+                    },
+                    {
+                      "expression": "`week_start_date`",
+                      "name": "week_start_date"
+                    },
+                    {
+                      "expression": "`count`",
+                      "name": "count"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "color": {
+                  "displayName": "Metric Type",
+                  "fieldName": "metric_type",
+                  "scale": {
+                    "mappings": [
+                      {
+                        "color": {
+                          "position": 2,
+                          "themeColorType": "visualizationColors"
+                        },
+                        "value": "Trends"
+                      },
+                      {
+                        "color": {
+                          "position": 1,
+                          "themeColorType": "visualizationColors"
+                        },
+                        "value": "Copies"
+                      }
+                    ],
+                    "type": "categorical"
+                  }
+                },
+                "label": {
+                  "show": true
+                },
+                "x": {
+                  "axis": {
+                    "labelAngle": 45
+                  },
+                  "displayName": "Week Start Date",
+                  "fieldName": "week_start_date",
+                  "format": {
+                    "date": "year-month-day",
+                    "type": "date"
+                  },
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "displayName": "Count",
+                  "fieldName": "count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "headerAlignment": "center",
+                "showDescription": false,
+                "showTitle": true,
+                "title": "📊 Weekly Trends + Copies"
+              },
+              "version": 3,
+              "widgetType": "bar"
+            }
+          }
+        },
+        {
+          "position": {
+            "height": 6,
+            "width": 1,
+            "x": 5,
+            "y": 12
+          },
+          "widget": {
+            "name": "trends_by_region_pie",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "trends_by_region_data",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "expression": "`trend_count`",
+                      "name": "trend_count"
+                    },
+                    {
+                      "expression": "`region`",
+                      "name": "region"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "angle": {
+                  "axis": {
+                    "hideTitle": true,
+                    "title": "Number of Trends"
+                  },
+                  "displayName": "Number of Trends",
+                  "fieldName": "trend_count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "displayName": "Region",
+                  "fieldName": "region",
+                  "legend": {
+                    "hide": false,
+                    "hideTitle": false,
+                    "title": "Region"
+                  },
+                  "scale": {
+                    "mappings": [
+                      {
+                        "color": {
+                          "position": 2,
+                          "themeColorType": "visualizationColors"
+                        },
+                        "value": "EMEA"
+                      },
+                      {
+                        "color": {
+                          "position": 1,
+                          "themeColorType": "visualizationColors"
+                        },
+                        "value": "APAC"
+                      }
+                    ],
+                    "sort": {
+                      "by": "angle-reversed"
+                    },
+                    "type": "categorical"
+                  }
+                },
+                "label": {
+                  "show": true
+                }
+              },
+              "frame": {
+                "headerAlignment": "center",
+                "showDescription": false,
+                "showTitle": true,
+                "title": "🥧 Trends by Region"
+              },
+              "version": 3,
+              "widgetType": "pie"
+            }
+          }
+        },
+        {
+          "position": {
+            "height": 6,
+            "width": 5,
+            "x": 0,
+            "y": 12
+          },
+          "widget": {
+            "name": "3f83d8bc",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "f4721edf",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "expression": "`region`",
+                      "name": "region"
+                    },
+                    {
+                      "expression": "`year_month`",
+                      "name": "year_month"
+                    },
+                    {
+                      "expression": "SUM(`count`)",
+                      "name": "sum(count)"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`metric_type` IN ('Copies')"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "color": {
+                  "displayName": "region",
+                  "fieldName": "region",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "label": {
+                  "show": false
+                },
+                "x": {
+                  "axis": {
+                    "labelAngle": 45,
+                    "title": "Year Month"
+                  },
+                  "displayName": "Year Month",
+                  "fieldName": "year_month",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "axis": {
+                    "title": "Copies Count"
+                  },
+                  "displayName": "Copies Count",
+                  "fieldName": "sum(count)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Copies/Artifacts MoM"
+              },
+              "version": 3,
+              "widgetType": "line"
+            }
+          }
+        },
+        {
+          "position": {
+            "height": 6,
+            "width": 6,
+            "x": 0,
+            "y": 6
+          },
+          "widget": {
+            "name": "fd1cc8e7",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "f4721edf",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "expression": "`region`",
+                      "name": "region"
+                    },
+                    {
+                      "expression": "`year_month`",
+                      "name": "year_month"
+                    },
+                    {
+                      "expression": "SUM(`count`)",
+                      "name": "sum(count)"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`metric_type` IN ('Trends')"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "color": {
+                  "displayName": "region",
+                  "fieldName": "region",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "label": {
+                  "show": false
+                },
+                "x": {
+                  "axis": {
+                    "labelAngle": 45,
+                    "title": "Year Month"
+                  },
+                  "displayName": "Year Month",
+                  "fieldName": "year_month",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "axis": {
+                    "hideLabels": false,
+                    "hideTitle": false,
+                    "title": "Trends Count"
+                  },
+                  "displayName": "Trends Count",
+                  "fieldName": "sum(count)",
+                  "scale": {
+                    "reverse": false,
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Trends Count MoM"
+              },
+              "version": 3,
+              "widgetType": "line"
+            }
+          }
+        }
+      ],
+      "name": "main_page",
+      "pageType": "PAGE_TYPE_CANVAS"
+    },
+    {
+      "displayName": "Global Filters",
+      "name": "86a08485",
+      "pageType": "PAGE_TYPE_GLOBAL_FILTERS"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    }
+  }
+}

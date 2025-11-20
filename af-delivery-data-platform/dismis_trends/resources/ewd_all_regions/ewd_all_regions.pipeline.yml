@@ -1,0 +1,28 @@
+# Delta Live Tables pipeline configuration for EWD All Regions
+#
+# This pipeline implements a 3-layer data architecture:
+# - Bronze (Landing): Raw data ingestion from Monday.com JSON exports
+# - Silver (Cleansed): Data quality enforcement and schema standardization
+# - Gold (Curated): Business-ready aggregated views and latest snapshots
+
+resources:
+  pipelines:
+    ewd_trends_and_copies_all_regions_pipeline:
+      name: "EWD Trends and Copies All Regions DLT Pipeline"
+      catalog: ${var.catalog}
+      schema: consolidated_dismis # Fallback schema only
+      serverless: true
+      budget_policy_id: ${var.budget_policy_id}
+      tags:
+        env: ${bundle.target}
+        vertical: dismis
+      libraries:
+        - glob:
+            include: ../../src/data_transformation/dlt_ewd_all_regions/**
+
+      root_path: ${workspace.file_path}/dismis_trends/src/data_transformation/dlt_ewd_all_regions
+
+      configuration:
+        catalog: ${var.catalog}
+        environment: ${bundle.target}
+        vertical: dismis

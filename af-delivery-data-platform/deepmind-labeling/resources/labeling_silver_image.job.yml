@@ -1,0 +1,158 @@
+# Google Drive Labeling Ingestion Job
+
+resources:
+  jobs:
+    deepmind_labeling_silver_image_job:
+      name: "DeepMind Labeling silver jobs for image"
+      description: "Process media files to produce labeling results"
+      tags:
+        env: ${bundle.target}
+        vertical: deepmind_labeling
+
+      parameters:
+        - name: ENVIRONMENT
+          default: ${bundle.target}
+        - name: VERTICAL
+          default: deepmind_labeling
+        - name: data_domain
+          default: ggdrive
+        - name: LIMIT
+          default: "5"
+
+        # parameters for processing files
+        - name: batch_id
+          default: ""
+
+      # Schedule configuration - adjust as needed
+      schedule:
+        quartz_cron_expression: "0 0 0 * * ?"
+        timezone_id: "Asia/Ho_Chi_Minh"
+
+      # Notification settings
+      # email_notifications:
+      # on_failure:
+      # - asafso@activefence.com # Update with your team email
+      # on_success:
+      # - asafso@activefence.com
+
+      # Job configuration
+      max_concurrent_runs: 1
+      timeout_seconds: 10800 # 3 hours timeout
+
+      # Task definitions
+      tasks:
+        # Add as first task
+        - task_key: update_prompt_profiles
+          environment_key: default
+          spark_python_task:
+            python_file: ../src/data_transformation/manage_prompt_profiles.py
+          max_retries: 0
+          timeout_seconds: 1200 # 20 minutes timeout, starting the cluster takes roughtly 11 mins
+
+        # Task 1: get list of files to process
+        - task_key: des_tag_gen_todo
+          environment_key: default
+          depends_on:
+            - task_key: update_prompt_profiles
+          spark_python_task:
+            python_file: ../src/data_transformation/silver_runner.py
+            parameters: ["plan", "--task", "image.des_tag", "--limit={{job.parameters.LIMIT}}"]
+          timeout_seconds: 600 # 10 minutes timeout
+          max_retries: 0
+          min_retry_interval_millis: 60000 # 1 minute
+
+        # Task 2: actually process files with for_each_task
+        - task_key: des_tag_process
+          depends_on:
+            - task_key: des_tag_gen_todo
+          for_each_task:
+            inputs: "{{tasks.des_tag_gen_todo.values.pending_batch_ids}}"
+            concurrency: 16 # max 16 concurrent runs
+            task:
+              task_key: image_des_tag_process_single
+              environment_key: default
+              spark_python_task:
+                python_file: ../src/data_transformation/silver_runner.py
+                parameters: ["process", "--task", "image.des_tag", "--batch_id={{input}}"]
+
+        - task_key: des_tag_consolidate
+          environment_key: default
+          depends_on:
+            - task_key: des_tag_process
+          spark_python_task:
+            python_file: ../src/data_transformation/silver_runner.py
+            parameters: ["consolidate", "--task", "image.des_tag"]
+
+        - task_key: profile_gen_todo
+          environment_key: default
+          depends_on:
+            - task_key: des_tag_consolidate
+          spark_python_task:
+            python_file: ../src/data_transformation/silver_runner.py
+            parameters: ["plan", "--task", "image.abuse", "--limit={{job.parameters.LIMIT}}"]
+          timeout_seconds: 300 # 5 minutes timeout
+          max_retries: 0
+          min_retry_interval_millis: 60000 # 1 minute
+
+        - task_key: profile_process
+          depends_on:
+            - task_key: profile_gen_todo
+          for_each_task:
+            inputs: "{{tasks.profile_gen_todo.values.pending_batch_ids}}"
+            concurrency: 16 # max 16 concurrent runs
+            task:
+              task_key: image_profiling_process_single
+              environment_key: default
+              spark_python_task:
+                python_file: ../src/data_transformation/silver_runner.py
+                parameters: ["process", "--task", "image.abuse", "--batch_id={{input}}"]
+
+        - task_key: profile_consolidate
+          environment_key: default
+          depends_on:
+            - task_key: profile_process
+          spark_python_task:
+            python_file: ../src/data_transformation/silver_runner.py
+            parameters: ["consolidate", "--task", "image.abuse"]
+
+        - task_key: image_embedding_gen_todo
+          environment_key: default
+          depends_on:
+            - task_key: des_tag_consolidate
+          spark_python_task:
+            python_file: ../src/data_transformation/silver_runner.py
+            parameters: ["plan", "--task", "image.embedding", "--limit={{job.parameters.LIMIT}}"]
+          timeout_seconds: 300 # 5 minutes timeout
+          max_retries: 0
+          min_retry_interval_millis: 60000 # 1 minute
+
+        - task_key: image_embedding_process
+          depends_on:
+            - task_key: image_embedding_gen_todo
+          for_each_task:
+            inputs: "{{tasks.image_embedding_gen_todo.values.pending_batch_ids}}"
+            concurrency: 16 # max 16 concurrent runs
+            task:
+              task_key: image_embedding_process_single
+              environment_key: default
+              spark_python_task:
+                python_file: ../src/data_transformation/silver_runner.py
+                parameters: ["process", "--task", "image.embedding", "--batch_id={{input}}"]
+
+        - task_key: image_embedding_consolidate
+          environment_key: default
+          depends_on:
+            - task_key: image_embedding_process
+          spark_python_task:
+            python_file: ../src/data_transformation/silver_runner.py
+            parameters: ["consolidate", "--task", "image.embedding"]
+
+      environments:
+        - environment_key: default
+
+          # Full documentation of this spec can be found at:
+          # https://docs.databricks.com/api/workspace/jobs/create#environments-spec
+          spec:
+            environment_version: "4"
+            # dependencies:
+            #   - ../dist/*.whl

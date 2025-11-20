@@ -1,0 +1,86 @@
+[project]
+name = "deepmind-labeling"
+version = "0.0.1"
+authors = [{ name = "asafso@activefence.com" }]
+requires-python = ">= 3.11"
+dependencies = [
+    "aiogoogle>=5.15.0",
+    "deepmerge>=2.0",
+    "google-api-core>=2.25.1",
+    "google-api-python-client>=2.179.0",
+    "google-auth-oauthlib>=1.2.2",
+    "google-auth>=2.40.3",
+    "google-genai>=1.41.0",
+    "imageio-ffmpeg>=0.6.0",
+    "langchain-google-genai>=2.1.10",
+    "langchain-openai>=0.3.32",
+    "langchain>=0.3.27",
+    "langgraph>=0.6.6",
+    "mlflow[databricks]>=3.3.2",
+    "open-clip-torch>=3.1.0",
+    "openai>=1.105.0",
+    "pydantic>=2.11.7",
+    "torch>=2.8.0",
+    "torchvision>=0.23.0",
+    "tqdm>=4.67.1",
+    "ffmpeg-python>=0.2.0",
+    "langchain-community>=0.3.29",
+    "pydub>=0.25.1",
+    "opencv-python-headless>=4.12.0.88",
+    "loguru>=0.7.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "databricks-dlt",
+    "ipykernel>=6.30.1",
+    "ruff>=0.12.9",
+    "nb-clean>=4.0.1",
+    "ipywidgets>=8.1.7",
+]
+
+[tool.pytest.ini_options]
+pythonpath = "src"
+testpaths = [
+    "tests",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/deepmind-labeling"]  # Changed
+
+[project.scripts]
+main = "deepmind-labeling.main:main"  # Changed
+
+[tool.basedpyright]
+extraPaths = ["../shared"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+src = [".", "../shared"]
+exclude = [
+    "__builtins__.pyi",
+    "scratch"
+]
+
+[tool.ruff.lint]
+select = [
+    "E4",      # Import errors
+    "E7",      # Statement errors  
+    "E9",      # Runtime errors
+    "F",       # Pyflakes
+    "I",       # Import order
+    "UP",      # pyupgrade
+    "B",       # flake8-bugbear
+    "C4",      # flake8-comprehensions
+    "ICN",     # flake8-import-conventions
+    "PIE",     # flake8-pie
+    "PYI",     # flake8-pyi
+    "RSE",     # flake8-raise
+    "RUF",     # Ruff-specific rules
+]

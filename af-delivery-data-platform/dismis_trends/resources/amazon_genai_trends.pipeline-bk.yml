@@ -1,0 +1,51 @@
+# Delta Live Tables pipeline configuration for GenAI Trends
+#
+# This pipeline implements a 3-layer data architecture:
+# - Bronze (Landing): Raw data ingestion from Monday.com JSON exports
+# - Silver (Cleansed): Data quality enforcement, schema standardization, and latest snapshots
+# - Gold (Curated): Business-ready dimensional model with fact and dimension tables
+#
+# Dimensional Model Structure:
+# Dimension Tables (curated_{vertical} schema):
+#   - dim_trends: Trend attributes and metadata
+#   - dim_geography: Geographic locations
+#   - dim_platforms: Platform presence information
+#   - dim_status: Status tracking and progression
+#   - dim_people: Researchers, reviewers, analysts
+#   - dim_sources: Detection sources and media links
+#   - dim_time: Time-related attributes and hierarchies
+#
+# Fact Tables (curated_{vertical} schema):
+#   - fct_trends: Trend-level metrics and facts
+#   - fct_trend_subitems: Subitem-level metrics
+#   - fct_trend_mentions: Media mentions and engagement
+
+resources:
+  pipelines:
+    amazon_genai_trends_pipeline:
+      name: "Amazon GenAI Trends DLT Pipeline"
+      catalog: ${var.catalog}
+      schema: landing_dismis # Fallback schema only
+      serverless: true
+      environment:
+        dependencies:
+          - pycountry==24.6.1
+      tags:
+        env: ${bundle.target}
+        vertical: dismis
+      libraries:
+        - glob:
+            include: ../src/data_transformation/dlt_amazon_genai_trends/**
+
+      root_path: ${workspace.file_path}/dismis_trends/src
+
+      continuous: false # Set to true for continuous processing
+      configuration:
+        catalog: ${var.catalog}
+        environment: ${bundle.target}
+        vertical: dismis
+        data_domain: trends
+        data_source: monday
+        file_name_prefix: amazon_genai_trends
+
+        bundle.sourcePath: ${workspace.file_path}/src

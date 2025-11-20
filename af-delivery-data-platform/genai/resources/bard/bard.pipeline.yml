@@ -1,0 +1,30 @@
+# GenAI Bard DLT Pipeline Configuration
+# This pipeline processes GenAI Bard data through the medallion architecture:
+# Bronze (Landing) -> Silver (Cleansed) -> Gold (Curated)
+
+resources:
+  pipelines:
+    bard_pipeline:
+      name: "GenAI Bard Pipeline"
+      catalog: ${var.catalog}
+      schema: landing_genai
+      serverless: true
+      budget_policy_id: ${var.budget_policy_id}
+      tags:
+        env: ${bundle.target}
+        vertical: genai
+        project: bard
+      libraries:
+        - glob:
+            include: ../../src/data_transformation/dlt_genai_bard/**
+
+      root_path: ${workspace.file_path}/genai/src/data_transformation/dlt_genai_bard
+      
+      continuous: false
+      configuration:
+        environment: ${bundle.target}
+        catalog: ${var.catalog}
+        vertical: genai
+        data_domain: safety_and_security
+        data_source: gsheets
+        file_name_prefix: bard

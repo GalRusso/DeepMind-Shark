@@ -1,0 +1,6 @@
+{
+    "version": 1,
+    "description_prompt_template": "image_description.md",
+    "tag_prompt_template": "image_tag.md",
+    "models": ["google_genai:gemini-2.5-flash", "openai:gpt-4o"]
+}

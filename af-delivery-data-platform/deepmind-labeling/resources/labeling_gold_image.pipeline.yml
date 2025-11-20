@@ -1,0 +1,34 @@
+# The main pipeline for af_delivery_data_platform
+resources:
+  pipelines:
+    deepmind_labeling_gold_pipeline:
+      name: deepmind_labeling_gold_pipeline
+      catalog: ${var.catalog}
+      schema: gold_deepmind_labeling
+      serverless: true
+      tags:
+        env: ${bundle.target}
+        vertical: deepmind_labeling
+      libraries:
+        - glob:
+            include: ../src/data_transformation/gold_aggregation.py
+      root_path: ${workspace.file_path}/src/data_transformation
+
+      permissions:
+        - group_name: DE-delivery
+          level: CAN_VIEW
+        - user_name: asafso@activefence.com
+          level: IS_OWNER
+      environment: 
+        dependencies:
+          - deepmerge
+          # - ../dist/*.whl
+
+      continuous: false # Set to true for continuous processing
+      configuration:
+        catalog: ${var.catalog}
+        environment: ${bundle.target}
+        vertical: deepmind_labeling
+        data_domain: ggdrive
+        data_source: ggdrive
+        file_name_prefix: ''

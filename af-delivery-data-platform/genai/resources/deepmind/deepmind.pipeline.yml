@@ -1,0 +1,30 @@
+# GenAI Deepmind DLT Pipeline Configuration
+# This pipeline processes GenAI Deepmind data through the medallion architecture:
+# Bronze (Landing) -> Silver (Cleansed) -> Gold (Curated)
+
+resources:
+  pipelines:
+    deepmind_pipeline:
+      name: "GenAI Deepmind Pipeline"
+      catalog: ${var.catalog}
+      schema: landing_genai
+      serverless: true
+      budget_policy_id: ${var.budget_policy_id}
+      tags:
+        env: ${bundle.target}
+        vertical: genai
+        project: deepmind
+      libraries:
+        - glob:
+            include: ../../src/data_transformation/dlt_genai_deepmind/**
+
+      root_path: ${workspace.file_path}/genai/src/data_transformation/dlt_genai_deepmind
+      
+      continuous: false
+      configuration:
+        environment: ${bundle.target}
+        catalog: ${var.catalog}
+        vertical: genai
+        data_domain: safety_and_security
+        data_source: gsheets
+        file_name_prefix: deepmind

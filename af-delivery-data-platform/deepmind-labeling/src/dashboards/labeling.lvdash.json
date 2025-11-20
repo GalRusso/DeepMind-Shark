@@ -1,0 +1,382 @@
+{
+  "datasets": [
+    {
+      "name": "65790b58",
+      "displayName": "image",
+      "queryLines": [
+        "SELECT * FROM af_delivery_dev.gold_deepmind_labeling.image"
+      ]
+    },
+    {
+      "name": "d34f96a9",
+      "displayName": "media",
+      "queryLines": [
+        "SELECT file_size, mimetype FROM af_delivery_dev.landing_deepmind_labeling.media"
+      ]
+    },
+    {
+      "name": "0b6a3e86",
+      "displayName": "tasks_status",
+      "queryLines": [
+        "SELECT task_key, status, error_message is not Null as has_error\n",
+        "FROM af_delivery_dev.silver_deepmind_labeling.tasks_status"
+      ]
+    },
+    {
+      "name": "54ccec68",
+      "displayName": "tasks_results",
+      "queryLines": [
+        "SELECT task_key, prompt_id FROM af_delivery_dev.silver_deepmind_labeling.tasks_results"
+      ]
+    },
+    {
+      "name": "3c1b020a",
+      "displayName": "tasks_todo",
+      "queryLines": [
+        "SELECT task_key, status, attempts FROM af_delivery_dev.silver_deepmind_labeling.tasks_todo"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "9a669f49",
+      "displayName": "result",
+      "layout": [
+        {
+          "widget": {
+            "name": "f2150f59",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "65790b58",
+                  "fields": [
+                    {
+                      "name": "count(*)",
+                      "expression": "COUNT(`*`)"
+                    },
+                    {
+                      "name": "file_mime_type",
+                      "expression": "`file_mime_type`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {
+                  "fieldName": "count(*)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Count of Records"
+                },
+                "color": {
+                  "fieldName": "file_mime_type",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "file_mime_type"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 1,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "f1d121a5",
+            "multilineTextboxSpec": {
+              "lines": [
+                "<span style=\"text-align:center;display:block\"><span style=\"font-size: 32px;\">LANDING</span></span>"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 3,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "c44787d3",
+            "multilineTextboxSpec": {
+              "lines": [
+                "<span style=\"text-align:center;display:block\"><span style=\"font-size:32px\">GOLD RESULT</span></span>"
+              ]
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 0,
+            "width": 3,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "f66847ed",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "d34f96a9",
+                  "fields": [
+                    {
+                      "name": "count(*)",
+                      "expression": "COUNT(`*`)"
+                    },
+                    {
+                      "name": "mimetype",
+                      "expression": "`mimetype`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "count(*)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "y": {
+                  "fieldName": "mimetype",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "label": {
+                  "show": true
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 1,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "8bbfd73d",
+            "multilineTextboxSpec": {
+              "lines": [
+                "<span style=\"text-align:center;display:block\"><span style=\"font-size:32px\">SILVER PROCESSING</span></span>"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 7,
+            "width": 6,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "713d724d",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "0b6a3e86",
+                  "fields": [
+                    {
+                      "name": "status",
+                      "expression": "`status`"
+                    },
+                    {
+                      "name": "count(*)",
+                      "expression": "COUNT(`*`)"
+                    },
+                    {
+                      "name": "task_key",
+                      "expression": "`task_key`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "count(*)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "y": {
+                  "fieldName": "task_key",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "color": {
+                  "fieldName": "status",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "tasks_status"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 8,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "8d06e3f6",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "54ccec68",
+                  "fields": [
+                    {
+                      "name": "count(*)",
+                      "expression": "COUNT(`*`)"
+                    },
+                    {
+                      "name": "task_key",
+                      "expression": "`task_key`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "count(*)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "y": {
+                  "fieldName": "task_key",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "tasks_results"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 8,
+            "width": 3,
+            "height": 6
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
+    },
+    {
+      "name": "c1958ce0",
+      "displayName": "house keeping",
+      "layout": [
+        {
+          "widget": {
+            "name": "bef6c388",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "3c1b020a",
+                  "fields": [
+                    {
+                      "name": "status",
+                      "expression": "`status`"
+                    },
+                    {
+                      "name": "count(*)",
+                      "expression": "COUNT(`*`)"
+                    },
+                    {
+                      "name": "task_key",
+                      "expression": "`task_key`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "count(*)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "y": {
+                  "fieldName": "task_key",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "color": {
+                  "fieldName": "status",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 3,
+            "height": 6
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    }
+  }
+}

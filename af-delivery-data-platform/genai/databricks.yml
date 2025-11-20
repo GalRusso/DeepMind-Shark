@@ -1,0 +1,64 @@
+# This is a Databricks asset bundle definition.
+# See https://docs.databricks.com/dev-tools/bundles/index.html for documentation.
+bundle:
+  name: genai
+  uuid: a735bbb1-8391-45f1-9065-5a9dc1d54ef2
+
+sync:
+  paths:
+    - ./src
+    - ../shared
+
+include:
+  - resources/bard/*.yml
+  - resources/cohere/*.yml
+  - resources/genai_consolidated/*.yml
+  - resources/deepmind/*.yml
+  - resources/agi/*.yml
+
+variables:
+  catalog:
+    description: "Catalog name"
+    default: af_delivery_dev
+  budget_policy_id:
+    description: "Budget Policy ID"
+    default: 6e02cf2b-bba0-43a6-9843-dfbe5245ea5d
+
+targets:
+  dev:
+    mode: development
+    cluster_id: 0808-165206-5oh7uj9s
+    workspace:
+      host: https://dbc-1239d0c6-d339.cloud.databricks.com
+      root_path: /Workspace/Users/hoangl@activefence.com/.bundle/${bundle.name}/${bundle.target}
+    presets:
+      tags:
+        env: dev
+    default: true
+    variables:
+      catalog: af_delivery_dev
+    permissions:
+      - user_name: hoangl@activefence.com
+        level: CAN_MANAGE
+      - group_name: "DE-delivery"
+        level: CAN_VIEW
+
+  prod:
+    mode: production
+    workspace:
+      host: https://dbc-1239d0c6-d339.cloud.databricks.com
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    presets:
+      name_prefix: "[Prod] "
+      tags:
+        env: prod
+        pic: hoangl@activefence.com
+    variables:
+      catalog: af_delivery_prod
+    permissions:
+      - service_principal_name: 257035a9-957a-434a-b1a7-f207dec2dde9
+        level: CAN_MANAGE
+      - user_name: hoangl@activefence.com
+        level: CAN_MANAGE
+      - group_name: "DE-delivery"
+        level: CAN_MANAGE

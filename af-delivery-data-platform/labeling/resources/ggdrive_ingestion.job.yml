@@ -1,0 +1,90 @@
+# Google Drive Labeling Ingestion Job
+
+resources:
+  jobs:
+    ggdrive_pipeline_job:
+      name: "Google Drive Labeling Ingestion Job"
+      description: "Ingestion only pipeline for Labeling Google Drive data"
+      tags:
+        env: ${bundle.target}
+        vertical: labeling
+
+      parameters:
+        - name: ENVIRONMENT
+          default: ${bundle.target}
+        - name: VERTICAL
+          default: labeling
+        - name: data_domain
+          default: ggdrive
+        # gsheet2s3 parameters
+        - name: GOOGLE_SHEETS_SPREADSHEET_ID
+          default: "1ajkkj72FUyPrgRY5opJ8hh4NiLe8yAoGH1UBn-sMJis"
+        - name: GOOGLE_SHEETS_SHEET_NAME
+          default: "Screening"
+        - name: FILE_NAME_COLUMN
+          default: "Title"
+        - name: EXTERNAL_URL_COLUMN
+          default: "[TK] Media File URL"
+        - name: FILE_HASH_COLUMN
+          default: "Hash (ID)"
+
+      # Schedule configuration - adjust as needed
+      # schedule:
+      #   quartz_cron_expression: "0 0 0 * * ?"
+      #   timezone_id: "Asia/Ho_Chi_Minh"
+
+      # Notification settings
+      # email_notifications:
+      #   on_failure:
+      #     - datn@activefence.com # Update with your team email
+      #   on_success:
+      #     - datn@activefence.com
+
+      # Job configuration
+      max_concurrent_runs: 1
+      timeout_seconds: 36000 # 10 hours timeout
+
+      # Task definitions
+      tasks:
+        # Task 1: Ingest data from Google Drive to S3
+        - task_key: ingest_gsheet_to_s3
+          environment_key: default
+          spark_python_task:
+            python_file: ../src/data_ingestion/gsheet2s3.py
+            parameters:
+              [
+                "--google_sheets_spreadsheet_id",
+                "{{job.parameters.GOOGLE_SHEETS_SPREADSHEET_ID}}",
+                "--google_sheets_sheet_name",
+                "{{job.parameters.GOOGLE_SHEETS_SHEET_NAME}}",
+                "--file_name_column",
+                "{{job.parameters.FILE_NAME_COLUMN}}",
+                "--external_url_column",
+                "{{job.parameters.EXTERNAL_URL_COLUMN}}",
+                "--file_hash_column",
+                "{{job.parameters.FILE_HASH_COLUMN}}",
+              ]
+          timeout_seconds: 7200 # 2 hours timeout
+          max_retries: 0
+          min_retry_interval_millis: 60000 # 1 minute
+
+        # Task 2: actually download files with for_each_task
+        - task_key: download_files
+          environment_key: default
+          depends_on:
+            - task_key: ingest_gsheet_to_s3
+          spark_python_task:
+            python_file: ../src/data_ingestion/gdrive_download.py
+          timeout_seconds: 36000 # 10 hours timeout
+          max_retries: 0
+          min_retry_interval_millis: 60000 # 1 minute
+
+      environments:
+        - environment_key: default
+
+          # Full documentation of this spec can be found at:
+          # https://docs.databricks.com/api/workspace/jobs/create#environments-spec
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../dist/*.whl

@@ -1,0 +1,70 @@
+# EWD Trends EMEA Data Pipeline Job
+# This job orchestrates the end-to-end data flow for EWD Trends EMEA:
+# 1. Ingestion: Extract data from Monday.com and save to S3
+# 2. Transformation: Process data through DLT medallion architecture
+
+resources:
+  jobs:
+    ewd_trends_emea_job:
+      name: "EWD Trends EMEA Job"
+      description: "End-to-end pipeline for EWD Trends EMEA data from Monday.com to Unity Catalog"
+      tags:
+        env: ${bundle.target}
+        vertical: dismis
+        region: emea
+      budget_policy_id: ${var.budget_policy_id}
+      
+      schedule:
+        quartz_cron_expression: "0 0 6 * * ?"
+        timezone_id: "Asia/Ho_Chi_Minh"
+        pause_status: UNPAUSED
+
+      parameters:
+        - name: run_type
+          default: "incremental" # "incremental" or "backfill" or "full_refresh"
+        - name: backfill_dates
+          default: "" # Comma-separated dates in YYYY-MM-DD format, required when run_type is "backfill"
+
+      # Notification settings
+      # email_notifications:
+      #   on_failure:
+      #     - hoangl@activefence.com  # Update with your team email
+
+      # Job configuration
+      max_concurrent_runs: 1
+      timeout_seconds: 7200 # 2 hours timeout
+
+      # Task definitions
+      tasks:
+        # Task 1: Ingest data from Monday.com to S3 (Trends)
+        - task_key: "monday2s3-trends-emea"
+          environment_key: monday2s3
+          spark_python_task:
+            python_file: ../../src/data_ingestion/ewd_emea/ewd_trends_emea_ingestion.py
+            parameters:
+              - "--environment"
+              - ${bundle.target}
+              - "--run_type"
+              - "{{job.parameters.run_type}}"
+              - "--backfill_dates"
+              - "{{job.parameters.backfill_dates}}"
+          timeout_seconds: 1800 # 30 minutes timeout
+          max_retries: 2
+          min_retry_interval_millis: 60000 # 1 minute
+
+        # Task 2: Run DLT Pipeline (S3 -> UC (Bronze -> Silver -> Gold))
+        - task_key: "dlt-trends-emea"
+          depends_on:
+            - task_key: "monday2s3-trends-emea"
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.ewd_trends_emea_pipeline.id}
+          timeout_seconds: 3600 # 1 hour timeout
+
+      environments:
+        - environment_key: monday2s3
+          # Full documentation of this spec can be found at:
+          # https://docs.databricks.com/api/workspace/jobs/create#environments-spec
+          spec:
+            environment_version: "4"
+            dependencies:
+              - "-r ../../src/data_ingestion/requirements.txt"

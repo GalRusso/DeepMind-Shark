@@ -1,0 +1,30 @@
+# GenAI Cohere DLT Pipeline Configuration
+# This pipeline processes GenAI Cohere data through the medallion architecture:
+# Bronze (Landing) -> Silver (Cleansed) -> Gold (Curated)
+
+resources:
+  pipelines:
+    cohere_pipeline:
+      name: "GenAI Cohere Pipeline"
+      catalog: ${var.catalog}
+      schema: landing_genai
+      serverless: true
+      budget_policy_id: ${var.budget_policy_id}
+      tags:
+        env: ${bundle.target}
+        vertical: genai
+        project: cohere
+      libraries:
+        - glob:
+            include: ../../src/data_transformation/dlt_genai_cohere/**
+
+      root_path: ${workspace.file_path}/genai/src/data_transformation/dlt_genai_cohere
+      
+      continuous: false
+      configuration:
+        environment: ${bundle.target}
+        catalog: ${var.catalog}
+        vertical: genai
+        data_domain: safety_and_security
+        data_source: gsheets
+        file_name_prefix: cohere

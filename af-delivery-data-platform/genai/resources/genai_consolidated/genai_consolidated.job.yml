@@ -1,0 +1,35 @@
+# GenAI Consolidated Data Pipeline Job
+# This job orchestrates the end-to-end data flow for GenAI Consolidated:
+# 1. Consolidation: Aggregate data from all GenAI modules (Bard, Cohere Translation 1&2, Cohere Unique 1&2)
+# 2. Transformation: Process data through DLT consolidated architecture
+
+resources:
+  jobs:
+    genai_consolidated_job:
+      name: "GenAI Consolidated Job"
+      description: "End-to-end pipeline for GenAI Consolidated data"
+      tags:
+        env: ${bundle.target}
+        vertical: genai
+      budget_policy_id: ${var.budget_policy_id}
+      
+      schedule:
+        quartz_cron_expression: "0 30 6 * * ?"
+        timezone_id: "Asia/Ho_Chi_Minh"
+        pause_status: UNPAUSED
+
+      # Notification settings
+      # email_notifications:
+      #   on_failure:
+      #     - hoangl@activefence.com  # Update with your team email
+
+      # Job configuration
+      max_concurrent_runs: 1
+      timeout_seconds: 7200 # 2 hours timeout
+
+      # Task definitions
+      tasks:
+        - task_key: "dlt-genai-consolidated"
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.genai_consolidated_pipeline.id}
+          timeout_seconds: 3600 # 1 hour timeout

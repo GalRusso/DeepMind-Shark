@@ -1,0 +1,30 @@
+{
+  "properties": {
+    "project_name": {
+      "type": "string",
+      "description": "What is the name of your data pipeline project?",
+      "default": "my-project",
+      "pattern": "^[a-z][a-z0-9_-]*$",
+      "pattern_match_failure_message": "Project name must start with a lowercase letter and contain only lowercase letters, numbers, underscores and hyphens",
+      "order": 1
+    },
+    "author_email": {
+      "type": "string",
+      "default": "<your-email>@activefence.com",
+      "description": "What is your email address?",
+      "order": 2
+    },
+    "catalog_name_prefix": {
+      "type": "string",
+      "default": "af_delivery",
+      "description": "What is your Unity Catalog name? (Please only provide the prefix)",
+      "order": 3
+    },
+    "workspace_host": {
+      "type": "string",
+      "default": "https://dbc-1239d0c6-d339.cloud.databricks.com",
+      "description": "What is your Databricks workspace host URL?",
+      "order": 5
+    }
+  }
+}

@@ -1,0 +1,6 @@
+resources:
+  dashboards:
+    kb_unstructured_overview_dashboard:
+      display_name: "DeepMind Labeling overview dashboard"
+      file_path: #TODO: ../src/dashboards/labeling.lvdash.json
+      warehouse_id: ${var.warehouse_id}

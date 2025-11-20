@@ -1,0 +1,111 @@
+resources:
+  jobs:
+    ingestion_job:
+      name: "KB unstructured ingestion job"
+      description: "Ingestion only pipeline for KB unstructured data - from Monday"
+      tags:
+        env: ${bundle.target}
+        vertical: kb_unstructured
+
+      parameters:
+        - name: ENVIRONMENT
+          default: ${bundle.target}
+        - name: run_type
+          default: "incremental" # "incremental" or "backfill" or "full_refresh"
+        - name: backfill_dates
+          default: "" # Comma-separated dates in YYYY-MM-DD format, required when run_type is "backfill"
+
+      # Schedule configuration - adjust as needed
+      schedule:
+        quartz_cron_expression: "0 0 23 * * ?"
+        timezone_id: "Asia/Jerusalem"
+        pause_status: UNPAUSED
+
+      # Notification settings
+      email_notifications:
+        on_failure:
+          - datn@activefence.com # Update with your team email
+      #   on_success:
+      #     - datn@activefence.com
+
+      # Job configuration
+      max_concurrent_runs: 1
+      timeout_seconds: 10800 # 3 hours timeout
+
+      # Task definitions
+      tasks:
+        # Task 1: Discover files from a monday board
+        - task_key: ingest_monday_discovery
+          environment_key: default
+          spark_python_task:
+            python_file: ../src/data_ingestion/finalized_documents_discovery.py
+            parameters:
+              - "--environment"
+              - ${bundle.target}
+              - "--run_type"
+              - "{{job.parameters.run_type}}"
+              - "--backfill_dates"
+              - "{{job.parameters.backfill_dates}}"
+          timeout_seconds: 7200 # 2 hours timeout
+          max_retries: 0
+          min_retry_interval_millis: 60000 # 1 minute
+
+        # Task 2: Download files
+        - task_key: ingest_monday_gdrive_download
+          environment_key: default
+          depends_on:
+            - task_key: ingest_monday_discovery
+          spark_python_task:
+            python_file: ../src/data_ingestion/monday_gdrive_download.py
+            parameters:
+              - "--environment"
+              - ${bundle.target}
+              - "--run_type"
+              - "{{job.parameters.run_type}}"
+              - "--backfill_dates"
+              - "{{job.parameters.backfill_dates}}"
+          timeout_seconds: 36000 # 10 hours timeout
+          max_retries: 0
+          min_retry_interval_millis: 1200000 # 2 minute
+
+        # Task 3: Update Monday board items with errors
+        - task_key: update_monday_errors
+          environment_key: default
+          depends_on:
+            - task_key: ingest_monday_gdrive_download
+          spark_python_task:
+            python_file: ../src/data_ingestion/update_monday_error.py
+            parameters:
+              - "--environment"
+              - ${bundle.target}
+          timeout_seconds: 1800 # 30 minutes timeout
+          max_retries: 1
+          min_retry_interval_millis: 60000 # 1 minute
+
+        # Task 4: Export DLQ to sheet
+        - task_key: export_monday_dlq_to_sheet
+          environment_key: default
+          depends_on:
+            - task_key: update_monday_errors
+          spark_python_task:
+            python_file: ../src/data_ingestion/export_dlq_to_sheet.py
+            parameters:
+              - "--environment"
+              - ${bundle.target}
+              - "--spreadsheet-id"
+              - "1xUOQB6It53Xw6vujS2t16XujPUJm6d841CATJE5b4M0"
+              - "--sheet-name"
+              - "Sheet1"
+          timeout_seconds: 1800 # 30 minutes timeout
+          max_retries: 1
+          min_retry_interval_millis: 60000 # 1 minute
+
+      environments:
+        - environment_key: default
+
+          # Full documentation of this spec can be found at:
+          # https://docs.databricks.com/api/workspace/jobs/create#environments-spec
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../dist/*.whl

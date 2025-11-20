@@ -1,0 +1,6 @@
+resources:
+  dashboards:
+    kb_unstructured_overview_dashboard:
+      display_name: "Labeling overview dashboard"
+      file_path: ../src/dashboards/labeling.lvdash.json
+      warehouse_id: ${var.warehouse_id}

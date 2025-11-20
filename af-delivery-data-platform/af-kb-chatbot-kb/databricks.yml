@@ -1,0 +1,72 @@
+# This is a Databricks asset bundle definition.
+# See https://docs.databricks.com/dev-tools/bundles/index.html for documentation.
+bundle:
+  name: af-kb-chatbot-kb
+  uuid: 43936b7e-35b5-4b29-bb81-b30e47d4c82a
+
+sync:
+  paths:
+    - ./src
+    - ../shared
+
+include:
+  - resources/*.job.yml
+  - resources/*.pipeline.yml
+  - resources/*.dashboard.yml
+
+variables:
+  catalog:
+    description: "Catalog name"
+    default: af_delivery_dev
+  budget_policy_id:
+    description: "Budget Policy ID"
+    default: 6e02cf2b-bba0-43a6-9843-dfbe5245ea5d
+  warehouse_id:
+    description: "SQL Warehouse ID for dashboard queries"
+    default: f455abf804ec343a
+
+
+targets:
+  dev:
+    mode: development
+    cluster_id: 0808-165206-5oh7uj9s
+    workspace:
+      host: https://dbc-1239d0c6-d339.cloud.databricks.com
+      root_path: /Workspace/Users/datn@activefence.com/.bundle/${bundle.name}/${bundle.target}
+    presets:
+      tags:
+        env: dev
+    default: true
+    variables:
+      catalog: af_delivery_dev
+    permissions:
+      - user_name: datn@activefence.com
+        level: CAN_MANAGE
+      - group_name: "DE-delivery"
+        level: CAN_VIEW
+
+  prod:
+    mode: production
+    workspace:
+      host: https://dbc-1239d0c6-d339.cloud.databricks.com
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    presets:
+      name_prefix: "[Prod] "
+      tags:
+        env: prod
+        pic: datn@activefence.com
+    variables:
+      catalog: af_delivery_prod
+    permissions:
+      - service_principal_name: 257035a9-957a-434a-b1a7-f207dec2dde9
+        level: CAN_MANAGE
+      - user_name: datn@activefence.com
+        level: CAN_MANAGE
+      - group_name: "DE-delivery"
+        level: CAN_MANAGE
+
+artifacts:
+  default:
+    type: whl
+    build: uv build
+    path: .

@@ -1,0 +1,237 @@
+{
+    "name": "mvp",
+    "image_abuse_categories": [
+        {
+            "version": 1,
+            "category_name": "sexually_explicit",
+            "pt_image_desc_tag": "image_description_tag.json",
+            "abuse_category_prompt_template": "is_abuse_category.md",
+            "adversary_levels_prompt_template": "adversary_level.md",
+            "category_definition": "sexual_explicit.md",
+            "adversary_levels": [
+                {
+                    "name": "non_adversarial",
+                    "prompt_template": "non_adversarial_content_description.md"
+                },
+                {
+                    "name": "semi_adversarial",
+                    "prompt_template": "semi_adversarial_content_description.md"
+                },
+                {
+                    "name": "fully_adversarial",
+                    "prompt_template": "fully_adversarial_content_description.md"
+                }
+            ],
+            "models": ["openai:gpt-4o", "google_genai:gemini-2.5-flash"]
+        },
+        {
+            "version": 1,
+            "category_name": "violence_or_gore",
+            "pt_image_desc_tag": "image_description_tag.json",
+            "category_definition": "violence_or_gore.md",
+            "abuse_category_prompt_template": "is_abuse_category.md",
+            "adversary_levels_prompt_template": "adversary_level.md",
+            "adversary_levels": [
+                {
+                    "name": "non_adversarial",
+                    "prompt_template": "non_adversarial_content_description.md"
+                },
+                {
+                    "name": "semi_adversarial",
+                    "prompt_template": "semi_adversarial_content_description.md"
+                },
+                {
+                    "name": "fully_adversarial",
+                    "prompt_template": "fully_adversarial_content_description.md"
+                }
+            ],
+            "models": ["openai:gpt-4o", "google_genai:gemini-2.5-flash"]
+        },
+        {
+            "version": 1,
+            "category_name": "hate_speech",
+            "pt_image_desc_tag": "image_description_tag.json",
+            "category_definition": "hate_speech.md",
+            "abuse_category_prompt_template": "is_abuse_category.md",
+            "adversary_levels_prompt_template": "adversary_level.md",
+            "adversary_levels": [
+                {
+                    "name": "non_adversarial",
+                    "prompt_template": "non_adversarial_content_description.md"
+                },
+                {
+                    "name": "semi_adversarial",
+                    "prompt_template": "semi_adversarial_content_description.md"
+                },
+                {
+                    "name": "fully_adversarial",
+                    "prompt_template": "fully_adversarial_content_description.md"
+                }
+            ],
+            "models": ["openai:gpt-4o", "google_genai:gemini-2.5-flash"]
+        },
+        {
+            "version": 1,
+            "category_name": "suicide_and_self_harm",
+            "pt_image_desc_tag": "image_description_tag.json",
+            "category_definition": "suicide_and_self_harm.md",
+            "abuse_category_prompt_template": "is_abuse_category.md",
+            "adversary_levels_prompt_template": "adversary_level.md",
+            "adversary_levels": [
+                {
+                    "name": "non_adversarial",
+                    "prompt_template": "non_adversarial_content_description.md"
+                },
+                {
+                    "name": "semi_adversarial",
+                    "prompt_template": "semi_adversarial_content_description.md"
+                },
+                {
+                    "name": "fully_adversarial",
+                    "prompt_template": "fully_adversarial_content_description.md"
+                }
+            ],
+            "models": ["openai:gpt-4o", "google_genai:gemini-2.5-flash"]
+        },
+        {
+            "version": 1,
+            "category_name": "counter_terrorism",
+            "pt_image_desc_tag": "image_description_tag.json",
+            "category_definition": "counter_terrorism.md",
+            "abuse_category_prompt_template": "is_abuse_category.md",
+            "adversary_levels_prompt_template": "adversary_level.md",
+            "adversary_levels": [
+                {
+                    "name": "non_adversarial",
+                    "prompt_template": "non_adversarial_content_description.md"
+                },
+                {
+                    "name": "semi_adversarial",
+                    "prompt_template": "semi_adversarial_content_description.md"
+                },
+                {
+                    "name": "fully_adversarial",
+                    "prompt_template": "fully_adversarial_content_description.md"
+                }
+            ],
+            "models": ["openai:gpt-4o", "google_genai:gemini-2.5-flash"]
+        }
+    ],
+    "video_abuse_categories": [
+        {
+            "version": 1,
+            "category_name": "sexually_explicit",
+            "pt_video_desc_tag": "video_description_tag.json",
+            "abuse_category_prompt_template": "is_abuse_category.md",
+            "adversary_levels_prompt_template": "adversary_level.md",
+            "category_definition": "sexual_explicit.md",
+            "adversary_levels": [
+                {
+                    "name": "non_adversarial",
+                    "prompt_template": "non_adversarial_content_description.md"
+                },
+                {
+                    "name": "semi_adversarial",
+                    "prompt_template": "semi_adversarial_content_description.md"
+                },
+                {
+                    "name": "fully_adversarial",
+                    "prompt_template": "fully_adversarial_content_description.md"
+                }
+            ],
+            "models": ["openai:gpt-4o", "google_genai:gemini-2.5-flash"]
+        },
+        {
+            "version": 1,
+            "category_name": "violence_or_gore",
+            "pt_video_desc_tag": "video_description_tag.json",
+            "category_definition": "violence_or_gore.md",
+            "abuse_category_prompt_template": "is_abuse_category.md",
+            "adversary_levels_prompt_template": "adversary_level.md",
+            "adversary_levels": [
+                {
+                    "name": "non_adversarial",
+                    "prompt_template": "non_adversarial_content_description.md"
+                },
+                {
+                    "name": "semi_adversarial",
+                    "prompt_template": "semi_adversarial_content_description.md"
+                },
+                {
+                    "name": "fully_adversarial",
+                    "prompt_template": "fully_adversarial_content_description.md"
+                }
+            ],
+            "models": ["openai:gpt-4o", "google_genai:gemini-2.5-flash"]
+        },
+        {
+            "version": 1,
+            "category_name": "hate_speech",
+            "pt_video_desc_tag": "video_description_tag.json",
+            "category_definition": "hate_speech.md",
+            "abuse_category_prompt_template": "is_abuse_category.md",
+            "adversary_levels_prompt_template": "adversary_level.md",
+            "adversary_levels": [
+                {
+                    "name": "non_adversarial",
+                    "prompt_template": "non_adversarial_content_description.md"
+                },
+                {
+                    "name": "semi_adversarial",
+                    "prompt_template": "semi_adversarial_content_description.md"
+                },
+                {
+                    "name": "fully_adversarial",
+                    "prompt_template": "fully_adversarial_content_description.md"
+                }
+            ],
+            "models": ["openai:gpt-4o", "google_genai:gemini-2.5-flash"]
+        },
+        {
+            "version": 1,
+            "category_name": "suicide_and_self_harm",
+            "pt_video_desc_tag": "video_description_tag.json",
+            "category_definition": "suicide_and_self_harm.md",
+            "abuse_category_prompt_template": "is_abuse_category.md",
+            "adversary_levels_prompt_template": "adversary_level.md",
+            "adversary_levels": [
+                {
+                    "name": "non_adversarial",
+                    "prompt_template": "non_adversarial_content_description.md"
+                },
+                {
+                    "name": "semi_adversarial",
+                    "prompt_template": "semi_adversarial_content_description.md"
+                },
+                {
+                    "name": "fully_adversarial",
+                    "prompt_template": "fully_adversarial_content_description.md"
+                }
+            ],
+            "models": ["openai:gpt-4o", "google_genai:gemini-2.5-flash"]
+        },
+        {
+            "version": 1,
+            "category_name": "counter_terrorism",
+            "pt_video_desc_tag": "video_description_tag.json",
+            "category_definition": "counter_terrorism.md",
+            "abuse_category_prompt_template": "is_abuse_category.md",
+            "adversary_levels_prompt_template": "adversary_level.md",
+            "adversary_levels": [
+                {
+                    "name": "non_adversarial",
+                    "prompt_template": "non_adversarial_content_description.md"
+                },
+                {
+                    "name": "semi_adversarial",
+                    "prompt_template": "semi_adversarial_content_description.md"
+                },
+                {
+                    "name": "fully_adversarial",
+                    "prompt_template": "fully_adversarial_content_description.md"
+                }
+            ],
+            "models": ["openai:gpt-4o", "google_genai:gemini-2.5-flash"]
+        }
+    ]
+}

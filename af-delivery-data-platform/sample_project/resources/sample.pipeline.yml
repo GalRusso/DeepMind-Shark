@@ -1,0 +1,21 @@
+# The main pipeline for af_delivery_data_platform
+resources:
+  pipelines:
+    sample_pipeline:
+      name: sample_pipeline
+      catalog: ${var.catalog}
+      schema: sample
+      serverless: true
+      tags:
+        env: ${bundle.target}
+      libraries:
+        - notebook:
+            path: ../src/sample/dlt_pipeline.ipynb 
+      configuration:
+        bundle.sourcePath: ${workspace.file_path}/src
+  
+      permissions:
+        - group_name: DE-delivery
+          level: CAN_VIEW
+        - user_name: hoangl@activefence.com
+          level: IS_OWNER

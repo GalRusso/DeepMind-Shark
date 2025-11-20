@@ -1,0 +1,72 @@
+# GenAI Bard Data Pipeline Job
+# This job orchestrates the end-to-end data flow for Bard GenAI:
+# 1. Ingestion: Extract data from Google Sheets and save to S3
+# 2. Transformation: Process data through DLT medallion architecture (landing -> cleansed)
+
+resources:
+  jobs:
+    bard_job:
+      name: "GenAI Bard Job"
+      description: "End-to-end pipeline for GenAI Bard data from Google Sheets to Unity Catalog"
+      tags:
+        env: ${bundle.target}
+        vertical: genai
+        project: bard
+      budget_policy_id: ${var.budget_policy_id}
+      
+      schedule:
+        quartz_cron_expression: "0 0 4 * * ?"
+        timezone_id: "Asia/Ho_Chi_Minh"
+        pause_status: UNPAUSED
+
+      parameters:
+        - name: run_type
+          default: "incremental" # "incremental" or "backfill" or "full_refresh"
+        - name: backfill_dates
+          default: "" # Comma-separated dates in YYYY-MM-DD format, required when run_type is "backfill"
+
+      # Notification settings
+      # email_notifications:
+      #   on_failure:
+      #     - hoangl@activefence.com  # Update with your team email
+
+      # Job configuration
+      max_concurrent_runs: 1
+      timeout_seconds: 7200 # 2 hours timeout
+
+      # Task definitions
+      tasks:
+        # Task 1: Ingest data from Google Sheets to S3
+        - task_key: "gspread2s3-bard"
+          environment_key: gspread2s3
+          spark_python_task:
+            python_file: ../../src/data_ingestion/bard_ingestion.py
+            parameters:
+              - "--environment"
+              - ${bundle.target}
+              - "--run_type"
+              - "{{job.parameters.run_type}}"
+              - "--backfill_dates"
+              - "{{job.parameters.backfill_dates}}"
+          libraries:
+            - requirements: ../../src/data_ingestion/requirements.txt
+          timeout_seconds: 1800 # 30 minutes timeout
+          max_retries: 2
+          min_retry_interval_millis: 60000 # 1 minute
+
+        # Task 2: Run DLT Pipeline (S3 -> UC (Bronze -> Silver))
+        - task_key: "dlt-bard"
+          depends_on:
+            - task_key: "gspread2s3-bard"
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.bard_pipeline.id}
+          timeout_seconds: 3600 # 1 hour timeout
+
+      environments:
+        - environment_key: gspread2s3
+          # Full documentation of this spec can be found at:
+          # https://docs.databricks.com/api/workspace/jobs/create#environments-spec
+          spec:
+            environment_version: "4"
+            dependencies:
+              - "-r ../../src/data_ingestion/requirements.txt"

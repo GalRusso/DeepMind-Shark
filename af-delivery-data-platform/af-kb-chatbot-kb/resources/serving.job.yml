@@ -1,0 +1,85 @@
+resources:
+  jobs:
+    af_kb_unstructured_serving_job:
+      name: "KB unstructured serving job"
+      description: "Upsert to pinecone"
+      tags:
+        env: ${bundle.target}
+        vertical: kb_unstructured
+
+      parameters:
+        - name: ENVIRONMENT
+          default: ${bundle.target}
+        - name: LIMIT # limit for each namespace
+          default: ""
+        - name: PINECONE_INDEX_NAME
+          default: dev-kb-unstructured-monday
+        - name: FULL_SYNC # force full sync instead of incremental (includes deletion check)
+          default: ""
+        - name: SKIP_MONDAY_UPDATE # skip Monday status update
+          default: ""
+
+      # Schedule configuration - adjust as needed
+      schedule:
+        quartz_cron_expression: "0 0 4 * * ?"
+        timezone_id: "Asia/Jerusalem"
+        pause_status: UNPAUSED
+
+      # Notification settings
+      email_notifications:
+        on_failure:
+          - datn@activefence.com # Update with your team email
+      #   on_success:
+      #     - datn@activefence.com
+
+      # Job configuration
+      max_concurrent_runs: 1
+      timeout_seconds: 10800 # 3 hours timeout
+
+      # Task definitions
+      tasks:
+        - task_key: serving
+          environment_key: default
+          spark_python_task:
+            python_file: ../src/data_serving/serving.py
+            parameters:
+              - "--environment"
+              - "{{job.parameters.ENVIRONMENT}}"
+              - "--limit"
+              -  "{{job.parameters.LIMIT}}"
+              - "--index_name"
+              - "{{job.parameters.PINECONE_INDEX_NAME}}"
+              - "--full_sync"
+              - "{{job.parameters.FULL_SYNC}}"
+
+          timeout_seconds: 7200 # 2 hours timeout
+          max_retries: 0
+          min_retry_interval_millis: 60000 # 1 minute
+
+        - task_key: update_monday_status
+          depends_on:
+            - task_key: serving
+          environment_key: default
+          spark_python_task:
+            python_file: ../src/data_serving/update_monday_status.py
+            parameters:
+              - "--environment"
+              - "{{job.parameters.ENVIRONMENT}}"
+              - "--skip_monday_update"
+              - "{{job.parameters.SKIP_MONDAY_UPDATE}}"
+              - "--full_sync"
+              - "{{job.parameters.FULL_SYNC}}"
+          timeout_seconds: 3600 # 1 hour timeout
+          max_retries: 3
+          min_retry_interval_millis: 120000 # 2 minute
+
+
+      environments:
+        - environment_key: default
+
+          # Full documentation of this spec can be found at:
+          # https://docs.databricks.com/api/workspace/jobs/create#environments-spec
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../dist/*.whl

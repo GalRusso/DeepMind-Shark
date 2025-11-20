@@ -1,0 +1,35 @@
+# EWD Copies APAC Data Pipeline Job
+# This job orchestrates the end-to-end data flow for EWD Copies APAC:
+# 1. Ingestion: Extract data from Monday.com and save to S3
+# 2. Transformation: Process data through DLT medallion architecture
+
+resources:
+  jobs:
+    ewd_all_regions_job:
+      name: "EWD Trends & Copies All Regions Job"
+      description: "End-to-end pipeline for EWD Trends & Copies All Regions data"
+      tags:
+        env: ${bundle.target}
+        vertical: dismis
+      budget_policy_id: ${var.budget_policy_id}
+      
+      schedule:
+        quartz_cron_expression: "0 30 6 * * ?"
+        timezone_id: "Asia/Ho_Chi_Minh"
+        pause_status: UNPAUSED
+
+      # Notification settings
+      # email_notifications:
+      #   on_failure:
+      #     - hoangl@activefence.com  # Update with your team email
+
+      # Job configuration
+      max_concurrent_runs: 1
+      timeout_seconds: 7200 # 2 hours timeout
+
+      # Task definitions
+      tasks:
+        - task_key: "dlt-all-regions"
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.ewd_trends_and_copies_all_regions_pipeline.id}
+          timeout_seconds: 3600 # 1 hour timeout

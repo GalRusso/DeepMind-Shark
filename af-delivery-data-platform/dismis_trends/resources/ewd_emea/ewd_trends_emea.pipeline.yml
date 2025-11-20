@@ -1,0 +1,33 @@
+# Delta Live Tables pipeline configuration for GenAI Trends
+#
+# This pipeline implements a 3-layer data architecture:
+# - Bronze (Landing): Raw data ingestion from Monday.com JSON exports
+# - Silver (Cleansed): Data quality enforcement and schema standardization
+# - Gold (Curated): Business-ready aggregated views and latest snapshots
+
+resources:
+  pipelines:
+    ewd_trends_emea_pipeline:
+      name: "EWD Trends EMEA DLT Pipeline"
+      catalog: ${var.catalog}
+      schema: landing_dismis # Fallback schema only
+      serverless: true
+      budget_policy_id: ${var.budget_policy_id}
+      tags:
+        env: ${bundle.target}
+        vertical: dismis
+        region: emea
+      libraries:
+        - glob:
+            include: ../../src/data_transformation/dlt_ewd_trends_emea/**
+
+      root_path: ${workspace.file_path}/dismis_trends/src/data_transformation/dlt_ewd_trends_emea
+
+      continuous: false # Set to true for continuous processing
+      configuration:
+        catalog: ${var.catalog}
+        environment: ${bundle.target}
+        vertical: dismis
+        data_domain: trends
+        data_source: monday
+        file_name_prefix: ewd_trends_emea

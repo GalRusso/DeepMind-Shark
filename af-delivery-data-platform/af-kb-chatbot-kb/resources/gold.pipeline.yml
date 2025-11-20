@@ -1,0 +1,29 @@
+resources:
+  pipelines:
+    kb_unstructured_gold_pipeline:
+      name: kb_unstructured_gold_pipeline
+      catalog: ${var.catalog}
+      schema: gold_kb_unstructured
+      serverless: true
+      tags:
+        env: ${bundle.target}
+        vertical: kb_unstructured
+      libraries:
+        - glob:
+            include: ../src/data_transformation/gold.py
+      root_path: ${workspace.file_path}/af-kb-chatbot-kb/src/data_transformation
+
+      permissions:
+        - group_name: DE-delivery
+          level: CAN_VIEW
+        - user_name: datn@activefence.com
+          level: IS_OWNER
+
+      continuous: false # Set to true for continuous processing
+      configuration:
+        catalog: ${var.catalog}
+        environment: ${bundle.target}
+        vertical: kb_unstructured
+        data_domain: ggdrive
+        data_source: ggdrive
+        file_name_prefix: ''

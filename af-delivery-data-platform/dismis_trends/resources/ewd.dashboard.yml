@@ -1,0 +1,10 @@
+# EWD Trends & Copies Analytics Dashboard
+# This dashboard provides comprehensive analytics for EWD trends and copies data
+# across all regions (US, EMEA, APAC) with key business metrics and insights
+
+resources:
+  dashboards:
+    ewd_trends_analytics_dashboard:
+      display_name: 'EWD Trends & Copies Analytics Dashboard'
+      file_path: ../src/dashboards/ewd_trends_analytics.lvdash.json
+      warehouse_id: ${var.warehouse_id}

@@ -1,0 +1,87 @@
+resources:
+  jobs:
+    af_kb_unstructured_transformation_job:
+      name: "KB unstructured transformation job"
+      description: "Transformation only pipeline for KB unstructured data"
+      tags:
+        env: ${bundle.target}
+        vertical: kb_unstructured
+
+      parameters:
+        - name: ENVIRONMENT
+          default: ${bundle.target}
+        - name: VERTICAL
+          default: kb_unstructured
+        # gdrive_discovery parameters
+        - name: LIMIT
+          default: ""
+
+      # Schedule configuration - adjust as needed
+      schedule:
+        quartz_cron_expression: "0 0 1 * * ?"
+        timezone_id: "Asia/Jerusalem"
+        pause_status: UNPAUSED
+
+      # Notification settings
+      email_notifications:
+        on_failure:
+          - datn@activefence.com # Update with your team email
+      #   on_success:
+      #     - datn@activefence.com
+
+      # Job configuration
+      max_concurrent_runs: 1
+      timeout_seconds: 36000 # 10 hours timeout
+
+      # Task definitions
+      tasks:
+        # Task 1: Landing table to chunking table
+        - task_key: landing
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.kb_unstructured_landing_pipeline.id}
+
+        # Task 2: Parsing and chuning documents
+        - task_key: parse_chunk
+          depends_on:
+            - task_key: landing
+          for_each_task:
+            inputs: "[0, 1, 2, 3, 4]"
+            concurrency: 5 # len of inputs
+            task:
+              task_key: parse_chunk_in_loop
+              environment_key: default
+              max_retries: 3
+              min_retry_interval_millis: 1200000 # 2 minute
+              spark_python_task:
+                python_file: ../src/data_transformation/silver_parse_chunk.py
+                parameters: ["--remaining={{input}}"]
+
+
+        # Task 3: Vectorizing chunks
+        - task_key: vectorize_chunks
+          environment_key: default
+          depends_on:
+            - task_key: parse_chunk
+          spark_python_task:
+            python_file: ../src/data_transformation/silver_vectorize.py
+            parameters: ["--limit={{job.parameters.LIMIT}}"]
+          timeout_seconds: 36000 # 10 hours timeout
+          max_retries: 3
+          min_retry_interval_millis: 1200000 # 2 minute
+
+        # Task 4: Gold table to chunking table
+        - task_key: gold
+          depends_on:
+            - task_key: vectorize_chunks
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.kb_unstructured_gold_pipeline.id}
+
+      environments:
+        - environment_key: default
+
+          # Full documentation of this spec can be found at:
+          # https://docs.databricks.com/api/workspace/jobs/create#environments-spec
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../dist/*.whl

@@ -1,0 +1,58 @@
+name: PROD - Dismis Trends Project - CD Pipeline
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ prod ]
+    paths:
+      - 'dismis_trends/**'
+  pull_request:
+    branches: [ prod ]
+    paths:
+      - 'dismis_trends/**'
+
+defaults:
+  run:
+    working-directory: ./dismis_trends
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  PYTHON_VERSION: '3.11'
+  DATABRICKS_AUTH_TYPE: github-oidc
+  DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST_PROD }}
+  DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID_PROD }}
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    environment: prod
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Databricks CLI
+      uses: databricks/setup-cli@main
+
+    - name: Validate Databricks bundle
+      run: |
+        databricks bundle validate --target prod
+
+  # deploy:
+  #   runs-on: ubuntu-latest
+  #   if: github.event_name == 'push'
+  #   needs: validate
+  #   environment: prod
+  #   steps:
+  #   - name: Checkout code
+  #     uses: actions/checkout@v4
+
+  #   - name: Set up Databricks CLI
+  #     uses: databricks/setup-cli@main
+
+  #   - name: Deploy to Production
+  #     run: |
+  #       databricks bundle deploy --target prod --auto-approve

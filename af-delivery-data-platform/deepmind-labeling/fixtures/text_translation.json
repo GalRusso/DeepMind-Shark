@@ -1,0 +1,5 @@
+{
+    "version": 1,
+    "prompt_template": "text_translation.md",
+    "models": ["google_genai:gemini-2.5-flash"]
+}

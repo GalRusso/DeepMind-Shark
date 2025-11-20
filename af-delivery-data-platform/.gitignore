@@ -1,0 +1,17 @@
+.databricks/
+build/
+dist/
+__pycache__/
+*.egg-info
+.venv/
+scratch/**
+!scratch/README.md
+
+.DS_Store
+
+uv.lock
+
+/.vscode/
+
+/.cursor/rules
+.cursor

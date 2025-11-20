@@ -1,0 +1,43 @@
+# The main job for af_delivery_data_platform.
+resources:
+  jobs:
+    sample_job:
+      name: sample_job
+
+      permissions:
+        - group_name: DE-delivery
+          level: CAN_VIEW
+        - user_name: hoangl@activefence.com
+          level: IS_OWNER
+      trigger:
+        # Run this job every day, exactly one day from the last run; see https://docs.databricks.com/api/workspace/jobs/create#trigger
+        periodic:
+          interval: 1
+          unit: DAYS
+
+      # email_notifications:
+      #  on_failure:
+      #    - hoangl@activefence.com
+
+      tasks:
+        - task_key: notebook_task1
+          notebook_task:
+            notebook_path: ../src/sample/notebook.ipynb
+
+        - task_key: refresh_pipeline
+          depends_on:
+            - task_key: notebook_task1
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.sample_pipeline.id}
+
+        - task_key: notebook_task2
+          depends_on:
+            - task_key: notebook_task1
+          notebook_task:
+            notebook_path: ../src/sample/notebook2.ipynb
+          # environment_key: default
+
+      # environments:
+      #   - environment_key: default
+      #     spec:
+      #       environment_version: "2"

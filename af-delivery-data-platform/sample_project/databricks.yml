@@ -1,0 +1,54 @@
+# This is a Databricks asset bundle definition for sample_project.
+# See https://docs.databricks.com/dev-tools/bundles/index.html for documentation.
+bundle:
+  name: sample_project
+  uuid: 7dfb9a0a-a402-4d0a-8e76-02e39beaec47
+
+include:
+  - resources/*.yml
+  - resources/*/*.yml
+
+sync:
+  paths:
+    - ./src
+    - ../shared
+
+variables:
+  catalog:
+    description: "Catalog name for local development"
+    default: af_delivery_dev
+
+targets:
+  dev:
+    mode: development
+    workspace:
+      host: https://dbc-1239d0c6-d339.cloud.databricks.com
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    presets:
+      tags:
+        env: dev
+    default: true
+    variables:
+      catalog: af_delivery_dev
+    permissions:
+      - user_name: ${workspace.current_user.userName}
+        level: CAN_MANAGE
+
+  prod:
+    mode: production
+    workspace:
+      host: https://dbc-1239d0c6-d339.cloud.databricks.com
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    presets:
+      name_prefix: "prod_"
+      tags:
+        env: prod
+    variables:
+      catalog: af_delivery_prod
+    permissions:
+      - service_principal_name: 257035a9-957a-434a-b1a7-f207dec2dde9
+        level: CAN_MANAGE
+      - user_name: hoangl@activefence.com
+        level: CAN_MANAGE
+      - group_name: "DE-delivery"
+        level: CAN_VIEW
